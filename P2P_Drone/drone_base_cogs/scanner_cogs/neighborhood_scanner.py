@@ -23,6 +23,11 @@ lock_file_path = os.path.join(lock_dir, lock_file_name)
 if not os.path.isdir(lock_dir):
     os.mkdir(lock_dir)
 def peer_scan():
+    """[summary]
+    This module creates the threads for the individual workers that then scan the IP's. Currently, one worker is assigned to each IP address.
+    The module is also in charge of the scan_lock, to make sure that more than one scans cannot happen at the same time, and also shuts down the 
+    scan after all bots have finished.
+    """
     while os.path.exists(lock_file_path):
         #print("scanner_locked")
         time.sleep(random.uniform(0.1,1.0))
@@ -65,6 +70,14 @@ def peer_scan():
                             sys.exit()
 
 def peer_recording(ip, port):
+    """[summary]
+    The module that is used to record the already recorded peers in the port_report. The port_report.txt (as of 3/20/21) file does not contain any useful
+    information. By this I mean that no module nor program uses it yet, so this module is more for preperation for when I will inevitably want to record
+    the ports that have successful IP and Port Numbers, so that they can be immediatly reached out to if the bot is shut down and then is turned on again. 
+    Args:
+        ip ([str]): [An IPv4 address (without port number)]
+        port ([str]): [Port number]
+    """
     ip = str(ip)
     port = str(port)
     filename = "port_report.txt"
@@ -102,6 +115,13 @@ def peer_recording(ip, port):
     sys.exit()
 
 def port_scan(ip):
+    """[summary]
+    The port scan module is the module that is used to scan the ports. The module takes the IP that it is given and scans it from port 49995 to port 50001.
+    If it finds a open port, it will start a thread to report the event in the port_report.txt, and it will then dispatch an outreach thread, which will then
+    communicate with the port, although at this point the port scan worker has moved on to the next port (and if not, has already completed it's assignment.)
+    Args:
+        ip ([str]): [An IPv4 address (without port number)]
+    """
     actual_workers.append(ip)
     try:
         for port in range(49995,50001):
@@ -162,5 +182,8 @@ def port_scan(ip):
             print(f"COULD NOT REMOVE WORKER: {ip} FROM ACTUAL_WORKERS LIST BECAUSE OF EXCEPTION: {e} ")
         print(f"SOCKET ERROR: {err}")
 def worker_scan(*ip):
+    """[summary]
+    A small function that joins the ip address together and then starts the port_scan module.
+    """
     str = ''.join(ip)
     port_scan(str)

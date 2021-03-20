@@ -2,6 +2,14 @@ import zlib
 import sys
 import re
 def heading_wrap(message):
+    """[summary]
+    Used to wrap a message in a heading, to include things such as a Footer, a Header, the length of the original message, and the CRC32 hash of the original message.
+    Args:
+        message ([str]): [A message to be wrapped in a header.]
+
+    Returns:
+        [str]: [A message that is fully wrapped in a header.]
+    """
     if message:
         print(f"MESSAGE TO SEND: {message}")
         crc_check_format_message = bytes(message, "utf-8")
@@ -34,6 +42,15 @@ def heading_wrap(message):
         return "null"
 
 def head_send(conn, message):
+    """[summary]
+
+    Args:
+        conn ([socket]): [A socket connection to send a headed message to.]
+        message ([bytes]): [A utf-8 string of bytes that are wrapped in a heading to be sent to a receiving connection.]
+
+    Returns:
+        [str]: [If there is not a message to send, the function will return with an error message.]
+    """
     if conn:
         if message:
             headed_message = heading_wrap(message)

@@ -18,6 +18,11 @@ global server
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 bind_attempts = 0
 def initialization_process():
+    """[summary]
+    This function starts the initialization process for the bot. It starts all of the modules that need to be started, removes all of the stuff that (such as .ipmessage files)
+    that may have been left over from previous runs of the bot that isn't meant for permanence, and starts threads of the neighborhood scanner. The initialization process is
+    a required part of the drone and cannot be removed, unless the drone is not to work correctly (or someone finds a better way to do it)
+    """
     try:
         self_name = os.path.basename(__file__)
     except Exception as e:

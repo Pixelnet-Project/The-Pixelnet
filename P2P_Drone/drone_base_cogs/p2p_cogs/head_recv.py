@@ -1,5 +1,16 @@
 import zlib
 def head_recv(conn, addr):
+    """[summary]
+    This function is used to "behead" the header that is sent to this bot. This function is to be used to receive messages, and to unwrap them to be readable
+    for the .ipmessage that other modules use. 
+    Args:
+        conn ([socket]): [A socket to an incoming connection]
+        addr ([str]): [An IPv4 address without a port number]
+
+    Returns:
+        [list]: [An error message that contains what type of error as well as what the error was specifically.]
+        [str]: [An unwrapped message from a outgoing link.]
+    """
     conn.settimeout(5)
     while 1:
         try:

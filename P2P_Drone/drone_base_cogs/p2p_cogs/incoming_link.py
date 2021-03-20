@@ -7,8 +7,15 @@ from .head_recv import *
 local_net = []
 lhost = get_ip.get_ip()
 def p2p_welcomer(server):
+    """[summary]
+    A function that takes incoming connections and transfers them to an incoming link. Can listen to the amount of current incoming link threads
+    plus 2.
+    Args:
+        server ([sock]): [description]
+    """
     while True:
-        server.listen(10)
+        amount_of_incoming = len([name for name in os.listdir('./permanence_files/ip_messages/incoming_messages/') if os.path.isfile(name)])
+        server.listen(amount_of_incoming + 2)
         print("SERVER LISTENING")
         conn, addr = server.accept()
         print(f"BOT_CONNECTED:{conn}, {addr}")
@@ -29,8 +36,50 @@ def p2p_welcomer(server):
             except Exception as e:
                 print(f"CONNECTION SHUTDOWN FAILED FOR CONNECTION {conn} AT WELCOMER BECAUSE OF EXCEPTION: {e}")
             conn.close()
+def shutdown_incoming_link(conn, file, err, addr):
+    """[summary]
+    This function is a universal shutdown for an incoming link. 
+    Args:
+        conn ([sock]): [A socket connection]
+        file ([TextIOWrapper]): [A file]
+        err ([Exception]): [The exception that caused the error. (If applicable)]
+        addr ([str]): [An IPv4 address, without the port number.]
+    """
+    ip_message_file_name = addr + ".ipmessage"
+    ip_message_file_location = "./permanence_files/ip_messages/incoming_messages/"
+    ip_message_file_path = os.path.join(ip_message_file_location, ip_message_file_name)
+    if conn:
+        try:
+            conn.shutdown(2)
+        except Exception as e:
+            print(f"CONNECTION SHUTDOWN FAILED FOR CONNECTION {conn} BECAUSE OF EXCEPTION: {e}")
+        conn.close()
+    if os.pathexists(ip_message_file_path):
+        try:
+            os.remove(ip_message_file_path)
+        except Exception as e:
+            print(f"COULD NOT REMOVE FILE {ip_message_file_path}, EVEN THOUGH IT EXISTS, BECAUSE OF EXCEPTION: {e}")
+    else:
+        print(f"ERROR FOR .IPMESSAGE FUNCTIONALITY, {ip_message_file_path} COULD NOT BE REMOVED, BECAUSE IT DOES NOT EXIST.")
+    if file:
+        try:
+            file.close()
+        except Exception as e:
+            print(f"FILE {file} COULD NOT BE CLOSED IN FATAL ERROR SHUTDOWN BECAUSE OF EXCEPTION {e}")
+    if err:
+        if addr:
+            print(f"(SHUTDOWN SEQUENCE MESSAGE) THE EXCEPTION {err} OCCURRED AT {addr}. CONNECTION FATAL.")
+        else:
+            print(f"(SHUTDOWN SEQUENCE MESSAGE) THE EXCEPTION {err} OCCURRED AT {conn}. CONNECTION FATAL. EXAMINE CONNECTION FOR ADDRESS, ADDRESS NOT AVAILABLE.")
+    sys.exit()
 
 def link(conn, addr):
+    """[summary]
+    The incoming_link is the receiving end of an outcoming link from another bot.
+    Args:
+        conn ([socket]): [A socket connection (in the role of a server)]
+        addr ([str]): [An IPv4 address, without the port number.]
+    """
     addr = str(addr)
     ip_message_file_name = addr + ".ipmessage"
     ip_message_file_location = "./permanence_files/ip_messages/incoming_messages/"

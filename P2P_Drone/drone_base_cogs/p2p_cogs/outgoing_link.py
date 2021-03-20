@@ -5,12 +5,22 @@ import os
 import time
 from .head_send import *
 def outreach_local_peer(address):
+    """[summary]
+    A small function that starts an outreach thread.
+    Args:
+        address ([str]): [An IPv4 address, as well as a port number]
+    """
     outreach_command = threading.Thread(target=outreach, args=(address,))
     outreach_command.name = "OUTREACH_LINK_FOR_REAL"
     outreach_command.start()
     sys.exit()
 
 def outreach(addr):
+    """[summary]
+    Communicates with the receiving end through .ipmessage files, so that any module can easily use the "gate out".
+    Args:
+        addr ([str]): [An IPv4 address, as well as a port number.]
+    """
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print(f"STARTED OUTREACH LINK TO {addr}")
     try:
