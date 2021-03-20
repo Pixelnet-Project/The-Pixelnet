@@ -25,8 +25,7 @@ if not os.path.isdir(lock_dir):
 def peer_scan():
     while os.path.exists(lock_file_path):
         #print("scanner_locked")
-        time.sleep(1)
-    time.sleep(random.uniform(0.1,1.0))
+        time.sleep(random.uniform(0.1,1.0))
     try:
         peer_lock = open(lock_file_path, "x")
         peer_lock.close()
