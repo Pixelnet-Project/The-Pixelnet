@@ -29,21 +29,21 @@ def initialization_process():
         print(f"COULD NOT FIND NAME OF THIS FILE BECAUSE OF EXCEPTION: {e}")
     if ".pyw" in self_name:
         sys.stdout = open(os.devnull, 'w')
-    p2p_server_thread = threading.Thread(target=incoming_link.p2p_welcomer, args=(server,))
-    p2p_server_thread.name = "p2p_welcomer"
-    p2p_server_thread.start()
     try:
         # Should be noted that after finishing development on VSCode, this needs to be taken out to mean in the context of the stand-alone drone
         os.remove("./permanence_files/peer_scan.lock")
     except Exception as e:
-        print(f"COULD NOT REMOVE peer_scan.lock IN START UP SEQUENCE BECAUSE OF EXCEPTION {e}")
+        print(f"COULD NOT REMOVE peer_scan.lock IN START UP SEQUENCE BECAUSE OF EXCEPTION: {e}")
     try:
         shutil.rmtree("./permanence_files/ip_messages")
     except Exception as e:
-        print(f"COULD NOT REMOVE TREE ./permanence_files/ip_messages IN START UP SEQUENCE BECAUSE OF EXCEPTION {e}")
+        print(f"COULD NOT REMOVE TREE ./permanence_files/ip_messages IN START UP SEQUENCE BECAUSE OF EXCEPTION: {e}")
     neighborhood_scanner_init_thread = threading.Thread(target=neighborhood_scanner.peer_scan, args=())
     neighborhood_scanner_init_thread.name = "init_scanner_thread"
     neighborhood_scanner_init_thread.start()
+    p2p_server_thread = threading.Thread(target=incoming_link.p2p_welcomer, args=(server,))
+    p2p_server_thread.name = "p2p_welcomer"
+    p2p_server_thread.start()
 tried_binds = []
 while binding == True:
     HOST = get_ip.get_ip()
@@ -54,9 +54,13 @@ while binding == True:
     if PORT not in tried_binds:
         try:
             server.bind((HOST, PORT))
-            init_thread = threading.Thread(target=initialization_process, args=())
-            init_thread.name = "init_thread"
-            init_thread.start()
+            try:
+                init_thread = threading.Thread(target=initialization_process, args=())
+                init_thread.name = "init_thread"
+                init_thread.start()
+            except:
+                print(f"FATAL ERROR, COULD NOT START INITIALIZATION THREAD!")
+                sys.exit()
             binding = False
         except:
             tried_binds.append(PORT)
