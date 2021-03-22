@@ -73,7 +73,7 @@ def peer_recording(ip, port):
     """[summary]
     The module that is used to record the already recorded peers in the port_report. The port_report.txt (as of 3/20/21) file does not contain any useful
     information. By this I mean that no module nor program uses it yet, so this module is more for preperation for when I will inevitably want to record
-    the ports that have successful IP and Port Numbers, so that they can be immediatly reached out to if the bot is shut down and then is turned on again. 
+    the ports that have successful IP and Port Numbers, so that they can be immediately reached out to if the bot is shut down and then is turned on again. 
     Args:
         ip ([str]): [An IPv4 address (without port number)]
         port ([str]): [Port number]
