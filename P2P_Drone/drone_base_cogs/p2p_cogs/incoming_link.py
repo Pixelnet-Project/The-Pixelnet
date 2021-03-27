@@ -1,5 +1,7 @@
+
 import threading
-import os.path
+import logging
+import os
 import sys
 from ..scanner_cogs import *
 from .. scanner_cogs import get_ip
@@ -14,13 +16,16 @@ def p2p_welcomer(server):
         server ([sock]): [description]
     """
     while True:
-        if os.path.exists("./permanence_files/ip_messages/incoming_messages/"):
-            amount_of_incoming = len([name for name in os.listdir('./permanence_files/ip_messages/incoming_messages/') if os.path.isfile(name)])
+        #NOTE: This listen function is only supposed to be here until I figure out how to have the amount of server connections (+2)
+        server.listen(2)
+        incoming_link_path = "permanence_files\ip_messages\incoming_messages/"
+        if os.path.isfile(incoming_link_path):
+            dir_list = os.listdir(incoming_link_path)
+            print(f"THIS IS HOW MANY FILES ARE IN INCOMING_MESSAGES: {len(dir_list)}")
         else:
-            print("(p2p_welcomer) POSSIBLE ERROR, THE PATH ./permanence_files/ip_messages/incoming_messages/ DOES NOT EXIST.")
-            amount_of_incoming = 0
-        server.listen(amount_of_incoming + 2)
-        print("SERVER LISTENING")
+            dir_list = 0
+            logging.info(f"No files found in {incoming_link_path}", exc_info=True)
+        print(f"HOW MANY MESSAGES IN INCOMING: {dir_list}")
         conn, addr = server.accept()
         print(f"BOT_CONNECTED:{conn}, {addr}")
         if conn:
@@ -29,16 +34,17 @@ def p2p_welcomer(server):
                 link_drone_thread.name = "INCOMING_LINK"
                 link_drone_thread.start()
             else:
+                logging.info(f"Failed to retrieve {conn} address.", exc_info=True)
                 try:
                     conn.shutdown(2)
-                except Exception as e:
-                    print(f"(p2p_welcomer) CONNECTION SHUTDOWN FAILED FOR CONNECTION {conn} AT WELCOMER BECAUSE OF EXCEPTION: {e}")
+                except:
+                    logging.error(f"Failed to shutdown connection {conn}", exc_info=True)
                 conn.close()
         else:
             try:
                 conn.shutdown(2)
             except Exception as e:
-                print(f"(p2p_welcomer) CONNECTION SHUTDOWN FAILED FOR CONNECTION {conn} AT WELCOMER BECAUSE OF EXCEPTION: {e}")
+                logging.error(f"Failed to shutdown unknown connection", exc_info=True)
             conn.close()
 def shutdown_incoming_link(conn, file, err, addr):
     """[summary]
@@ -58,14 +64,14 @@ def shutdown_incoming_link(conn, file, err, addr):
         try:
             os.remove(ip_message_file_path)
         except Exception as e:
-            print(f"(SHUTDOWN SEQUENCE MESSAGE) COULD NOT REMOVE FILE {ip_message_file_path}, EVEN THOUGH IT EXISTS, BECAUSE OF EXCEPTION: {e}")
+            logging.error(f"Failed to remove {ip_message_file_path} in shutdown_sequence for link {addr}", exc_info=True)
     else:
-        print(f"(SHUTDOWN SEQUENCE MESSAGE) ERROR FOR .IPMESSAGE FUNCTIONALITY, {ip_message_file_path} COULD NOT BE REMOVED, BECAUSE IT DOES NOT EXIST.")
+        logging.info(f"Failed to remove {ip_message_file_path} in shutdown_sequence for link {addr} because it does not exist.")
     if conn:
         try:
             conn.shutdown(2)
         except Exception as e:
-            print(f"(SHUTDOWN SEQUENCE MESSAGE) CONNECTION SHUTDOWN FAILED FOR CONNECTION {conn} BECAUSE OF EXCEPTION: {e}")
+            logging.error(f"Could not shutdown incoming_link {addr}", exc_info=True)
         conn.close()
     if file:
         if file == False:
@@ -74,7 +80,7 @@ def shutdown_incoming_link(conn, file, err, addr):
             try:
                 file.close()
             except Exception as e:
-                print(f"(SHUTDOWN SEQUENCE MESSAGE) FILE {file} COULD NOT BE CLOSED IN FATAL ERROR SHUTDOWN BECAUSE OF EXCEPTION {e}")
+                logging.critical(f"Could not close file {file} even though it exists.", exc_info=True)
     if err:
         if err != False:
             if addr:
@@ -109,11 +115,13 @@ def link(conn, addr):
         try:
             os.remove(ip_message_file_path)
         except Exception as e:
+            logging.critical(f"Could not remove a previous version of .ipmessage file from incoming_link {addr}, even though the previous file exists. Shutting down incoming_link.", exc_info=True)
             shutdown_incoming_link(conn, False, e, addr)
     if not os.path.isdir(ip_message_file_path):
         try:
             os.makedirs(ip_message_file_location, exist_ok=True)
         except Exception as e:
+            logging.critical(f"Could not create {ip_message_file_location} for incoming_link {addr}, even though the file does not exist. Shutting down incoming_link", exc_info=True)
             shutdown_incoming_link(conn, False, e, addr)
     print("STARTED INCOMING LINK")
     disconnection_counter = 0
@@ -129,6 +137,7 @@ def link(conn, addr):
             if type(net_link) == type([]):
                 if net_link[1] == "LOCAL_ERROR":
                     if net_link[0] == "FATAL_CONNECTION_ERROR":
+                        logging.critical(f"Encountered fatal connection error in incoming_link {addr} , for more details, check the appropriate head_recv log file.", exc_info=True)
                         shutdown_incoming_link(conn, file, "", addr)
                     else:
                         print(f"LOCAL_ERROR: {net_link[0]} experienced. Non-fatal.")
@@ -137,15 +146,17 @@ def link(conn, addr):
             try:
                 file = open(ip_message_file_path, "r")
             except Exception as e:
-                print(f"POSSIBLY EXPECTED ERROR FOR .IPMESSAGE FUNCTIONALITY: {e}")
+                logging.info(f"Could not open or read {ip_message_file_path} in incoming_link {addr}", exc_info=True)
                 try:
                     file = open(ip_message_file_path, "x")
                 except Exception.error as e:
+                    logging.critical(f"Could not create the file {ip_message_file_path} in incoming_link {addr}", exc_info=True)
                     shutdown_incoming_link(conn, file, e, addr)
             finally:
                 try:
                     file = open(ip_message_file_path, "a+")
                 except Exception as e:
+                    logging.critical(f"Could not open {ip_message_file_path} in append+ mode in incoming_link {addr}", exc_info=True)
                     shutdown_incoming_link(conn, file, e, addr)
             if net_link == "DRONE_IDLE":
                 pass
@@ -159,6 +170,7 @@ def link(conn, addr):
                             file = open(ip_message_file_path, "a+")
                             file.write(net_link)
                         except Exception as e:
+                            logging.critical(f"Could not open {ip_message_file_path} in append+ mode, or could not write to {ip_message_file_path} in append+ mode in incoming_link {addr}", exc_info=True)
                             shutdown_incoming_link(conn, file, e, addr)
                     file.write("\n")
                     file.close()
@@ -166,11 +178,15 @@ def link(conn, addr):
             disconnection_counter += 1
         if disconnection_counter == 5:
             try:
-                conn.sendall("conn_test", "utf-8")
+                conn.sendall(bytes("conn_test", "utf-8"))
                 disconnection_counter = 0
-            except:
+            except Exception as err:
                 print("INCOMING_LINK_DISCONNECTED")
                 try:
                     conn.shutdown(2)
                 except Exception as e:
+                    logging.critical(f"Could not shutdown connection {conn} in incoming_link {addr}", exc_info=True)
                     shutdown_incoming_link(conn, file, e, addr)
+                finally:
+                    logging.critical(f"Outgoing link {conn} disconnected from incoming_link {addr}", exc_info=True)
+                    shutdown_incoming_link(conn, file, err, addr)

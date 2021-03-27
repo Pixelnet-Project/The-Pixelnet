@@ -2,6 +2,7 @@ import socket
 import threading
 import sys
 import os
+import logging
 import time
 from .head_send import *
 def outreach_local_peer(address):
@@ -27,14 +28,15 @@ def outreach(addr):
         sock.connect(addr)
         sock.settimeout(5)
     except:
-        print("OUTREACH_FAILED")
+        logging.critical(f"Could not outreach to {addr}", exc_info=True)
         try:
             sock.shutdown(2)
         except socket.error:
-            pass
+            logging.error(f"Could not shutdown sock {sock} in outgoing link {addr}", exc_info=True)
         try:
             sock.close()
         except:
+            logging.critical(f"Could not close sock {sock} in outgoing link {addr}", exc_info=True)
             sys.exit()
         sys.exit()
     addr = str(addr)
@@ -45,33 +47,34 @@ def outreach(addr):
         try:
             os.remove(ip_message_file_path)
         except Exception as e:
-            print(f"UNABLE TO REMOVE IP FILE PATH. THIS IS NORMAL IF THE FILE WAS ALREADY DELETED OR DID NOT EXIST. CAUSED BY EXCEPTION: {e}")
+            logging.warning(f"Could not remove {ip_message_file_path} (even though it exists)", exc_info=True)
     if not os.path.isdir(ip_message_file_path):
         try:
             os.makedirs(ip_message_file_location, exist_ok=True)
         except Exception as e:
-            print(f"FATAL ERROR FOR .IPMESSAGE FUNCTIONALITY, CANNOT CREATE REQUIRED FILES/DIRECTORY. CAUSED BY EXCEPTION: {e}")
+            logging.critical(f"Could not make the directory tree for {ip_message_file_location} in outgoing_link {addr}", exc_info=True)
             try:
                 sock.shutdown(2)
             except Exception as e:
-                print(f"SOCK SHUTDOWN ERROR IN DISCONNECTION PROCEDURE. CAUSED BY EXCEPTION: {e}")
+                logging.error(f"Could not shutdown sock {sock} in outgoing_link {addr}", exc_info=True)
             sock.close()
             sys.exit()
     while 1:
         try:
             file = open(ip_message_file_path, "r")
         except:
+            logging.warning(f"Could not read {ip_message_file_path}", exc_info=True)
             try:
                 file = open(ip_message_file_path, "x")
                 file.close()
             except Exception as e:
-                    print(f"UNEXPECTED FATAL READ/WRITE ERROR FOR .IPMESSAGE FUNCTIONALITY: {e}")
+                    logging.critical(f"Could not create the file {ip_message_file_path} in outgoing_link {addr}", exc_info=True)
                     sys.exit()
             finally:
                 try:
                     file = open(ip_message_file_path, "a+")
                 except Exception as e:
-                    print(f"UNEXPECTED FATAL READ/WRITE ERROR FOR .IPMESSAGE FUNCTIONALITY: {e}")
+                    logging.critical(f"Could not open the file {ip_message_file_path} in append+ mode in outgoing_link {addr}", exc_info=True)
                     sys.exit()
         output = []
         for line in file:
@@ -89,11 +92,11 @@ def outreach(addr):
                             try:
                                 file.close()
                             except Exception as e:
-                                print(f"DEBUG: COULD NOT CLOSE FILE: {file} IN FATAL_CONNECTION_ERROR SHUTDOWN SEQUENCE: {e}")
+                                logging.warning(f"Could not close file {ip_message_file_path} in outgoing_link {addr}", exc_info=True)
                             try:
                                 sock.shutdown(2)
                             except socket.error as e:
-                                pass
+                                logging.error(f"Could not shutdown sock {sock} in outgoing_link {addr}", exc_info=True)
                             sock.close()
                             sys.exit()
         lst = []

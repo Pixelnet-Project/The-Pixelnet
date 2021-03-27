@@ -1,9 +1,10 @@
 import subprocess
 import platform
+import logging
 try:
     import netifaces
 except ImportError:
-    pass
+    logging.warning("Could not import the netifaces module", exc_info=True)
 from . import *
 from . import get_ip
 ip_faces_dict = {}

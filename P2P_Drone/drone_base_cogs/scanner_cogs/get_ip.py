@@ -1,4 +1,5 @@
 import socket
+import logging
 def get_ip():
     """[summary]
     An important function that gets the IP of the current bot. DO NOT REMOVE. 
@@ -9,4 +10,5 @@ def get_ip():
         IP = s.getsockname()[0]
     except Exception:
         IP = '127.0.0.1'
+        logging.info("Could not get own IP address, assuming that IP address is localhost.", exc_info=True)
     return IP

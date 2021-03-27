@@ -1,4 +1,5 @@
 import zlib
+import logging
 def head_recv(conn, addr):
     """[summary]
     This function is used to "behead" the header that is sent to this bot. This function is to be used to receive messages, and to unwrap them to be readable
@@ -11,13 +12,13 @@ def head_recv(conn, addr):
         [list]: [An error message that contains what type of error as well as what the error was specifically.]
         [str]: [An unwrapped message from a outgoing link.]
     """
+    logging.basicConfig(filename=f'./debug/head_recv-{addr}.log', filemode='a+', format='%(asctime)s - %(process)d - %(name)s - %(levelname)s - %(message)s')
     conn.settimeout(5)
     while 1:
         try:
             message_raw = conn.recv(2048)
         except Exception as e:
-            print(f"FATAL CONNECTION ERROR WITH {addr}")
-            print(f"ENCOUNTERED ERROR {e}")
+            logging.critical(f"Could not receive messages from conn {conn}, addr {addr}", exc_info=True)
             return ["FATAL_CONNECTION_ERROR", "LOCAL_ERROR"]
         if message_raw:
             message = message_raw.decode('utf-8')
@@ -37,17 +38,19 @@ def head_recv(conn, addr):
                                 if "LOCAL_ERROR" not in message_split:
                                         return message
                                 else:
+                                    logging.warning(f"An attempted error_hijack has been attempted. Full message: {message_split}")
                                     return ["ATTEMPTED_ERROR_HIJACK", "SECURITY_ALERT"]
                             else:
-                                print("Message length does not to match length expected.")
+                                logging.error(f"Message length does not match expected length Full message: {message_split}")
                                 return ["MESSAGE_LEN_ERROR", "LOCAL_ERROR"]
                         else:
-                            print("Footer missing or compromised.")
+                            logging.error(f"A Footer is Missing or compromised. Full message: {message_split}")
                             return ["FOOTER_ERROR", "LOCAL_ERROR"]
                     else:
-                        print("Header missing or compromised")
+                        logging.error(f"A Header is Missing or compromised. Full message: {message_split}")
                         return ["HEADER_ERROR", "LOCAL_ERROR"]
                 else:
+                    logging.error(f"A CRC matching error has occurred. Full message: {message_split}")
                     return ["CRC_ERROR", "LOCAL_ERROR"]
         else:
             return message_raw

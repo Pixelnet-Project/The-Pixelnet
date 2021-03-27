@@ -2,6 +2,7 @@ import socket
 import threading
 import sys
 import time
+import logging
 import os.path
 import random
 from . import ip_range
@@ -10,7 +11,7 @@ from . import get_ip
 try:
     from . import broadcast_get
 except Exception as e:
-    print(f"FAILED TO IMPORT BROADCAST_GET BECAUSE EXCEPTION: {e}")
+    logging.warning("broadcast_get could not be imported", exc_info=True)
 possible_peers = []
 max_ip = ip_range.ip_range()
 global lhost
@@ -34,13 +35,13 @@ def peer_scan():
     try:
         peer_lock = open(lock_file_path, "x")
         peer_lock.close()
-    except Exception as e:
-        print(f"COULD NOT OPEN OR CLOSE FILE {peer_lock} BECAUSE OF EXCEPTION: {e}")
+    except Exception:
+        logging.critical("Could not create lock file (even thought it's believed that the lock file does not exist!)", exc_info=True)
     target_number = 0
     try:
         broadcast = broadcast_get.get()
-    except Exception as e:
-        print(f"COULD NOT GET BROADCAST IP BECAUSE OF EXCEPTION: {e}")
+    except Exception:
+        logging.debug("broadcast_get couldn't be used", exc_info=True)
         broadcast = False
     for i in range(0, max_ip):
         target_number = int(target_number)
@@ -53,8 +54,8 @@ def peer_scan():
             if broadcast != False:
                 try:
                     targets.remove(broadcast)
-                except Exception as e:
-                    print(f"COULD NOT REMOVE BROADCAST IP FROM TARGETS LIST BECAUSE OF EXCEPTION: {e}")
+                except Exception:
+                    logging.debug("Could not remove broadcast_get", exc_info=True)
             for workers in targets:
                 worker_threads = threading.Thread(target=worker_scan, args=(workers))
                 worker_threads.name = f"Port Scan Worker {workers}"
@@ -63,10 +64,14 @@ def peer_scan():
                 if workers == targets[-1]:
                     #print("WORKERS END")
                     time.sleep(5)
+                    peer_scan_lock_path = "./permanence_files/peer_scan.lock"
                     while True:
                         if not actual_workers:
                             #print("Targets is equal to finished_workers")
-                            os.remove("./permanence_files/peer_scan.lock")
+                            if os.path.isdir(peer_scan_lock_path):
+                                os.remove(peer_scan_lock_path)
+                            else:
+                                logging.critical("Could not remove peer_scan_lock_path even though it exists", exc_info=True)
                             sys.exit()
 
 def peer_recording(ip, port):
@@ -88,17 +93,17 @@ def peer_recording(ip, port):
     try:
         file = open(file_path, "r")
     except:
+        logging.debug("Could not open port report file")
         try:
             file = open(file_path, "x")
         except:
-            print("UNEXPECTED PEER RECORDING FILE ERROR")
+            logging.critical("Could not create port_report.txt (after being unable to read a possibly existing port_report.txt)", exc_info=True)
             sys.exit()
     finally:
         try:
             file = open(file_path, "a+")
         except:
-            #print("UNEXPECTED PEER RECORDING FILE ERROR")
-            sys.exit()
+            logging.critical(f"Could not open {file_path} in append mode", exc_info=True)
     with open(file_path, "r") as file:
         ip_list_str = file.read()
         print(ip_list_str)
@@ -146,12 +151,12 @@ def port_scan(ip):
                         try:
                             actual_workers.remove(lhost)
                         except ValueError as e:
-                            print(f"Had exception {e} when attempting to remove localhost from neighborhood scanner.")
+                            logging.error("Could not remove lhost from actual_workers list", exc_info=True)
                     #print(actual_workers)
                     try:
                         sock.close()
                     except Exception as e:
-                        print(f"DEBUG: COULD NOT CLOSE SOCK {sock} BECAUSE OF EXCEPTION: {e}.")
+                        logging.critical("Could not close sock in port_scan function", exc_info=True)
                     sys.exit()
                 else:
                     break
@@ -162,25 +167,26 @@ def port_scan(ip):
                     try:
                         actual_workers.remove(lhost)
                     except ValueError as e:
-                        print(f"Had exception {e} when attempting to remove localhost from neighborhood scanner.")
+                        logging.error("Could not remove lhost from actual_workers list", exc_info=True)
                 #print(actual_workers)
                 try:
                     sock.close()
                 except Exception as e:
-                    print(f"COULD NOT CLOSE CONNECTION {sock} BECAUSE OF EXCEPTION: {e}")
+                    logging.critical("Could not close sock in port_scan function", exc_info=True)
                 sys.exit()
             else:
                 pass
                 #print(f"Nothing on {ip}:{port}")
     except socket.gaierror:
         actual_workers.remove(ip)
+        logging.info(f"On worker {ip}, there was no client to scan.")
         sys.exit()
     except socket.error as err:
         try:
             actual_workers.remove(ip)
         except Exception as e:
-            print(f"COULD NOT REMOVE WORKER: {ip} FROM ACTUAL_WORKERS LIST BECAUSE OF EXCEPTION: {e} ")
-        print(f"SOCKET ERROR: {err}")
+            logging.critical(f"In worker {ip}, could not remove worker IP from actual_workers list", exc_info=True)
+        logging.error(f"In worker {ip}, there was a socket error", exc_info=True)
 def worker_scan(*ip):
     """[summary]
     A small function that joins the ip address together and then starts the port_scan module.

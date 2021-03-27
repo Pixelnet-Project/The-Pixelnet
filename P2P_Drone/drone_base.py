@@ -4,6 +4,13 @@ import random
 import sys
 import threading
 import os
+import logging
+if not os.path.isdir("./debug"):
+    try:
+        os.mkdir("./debug")
+    except Exception as e:
+        print(e)
+logging.basicConfig(filename='./debug/init_sequence.log', filemode='a+', format='%(asctime)s - %(process)d - %(name)s - %(levelname)s - %(message)s')
 import shutil
 from drone_base_cogs.scanner_cogs import *
 from drone_base_cogs.scanner_cogs import get_ip
@@ -25,19 +32,19 @@ def initialization_process():
     """
     try:
         self_name = os.path.basename(__file__)
-    except Exception as e:
-        print(f"COULD NOT FIND NAME OF THIS FILE BECAUSE OF EXCEPTION: {e}")
+    except:
+        logging.critical("Could not determine name of self", exc_info=True)
     if ".pyw" in self_name:
         sys.stdout = open(os.devnull, 'w')
     try:
         # Should be noted that after finishing development on VSCode, this needs to be taken out to mean in the context of the stand-alone drone
         os.remove("./permanence_files/peer_scan.lock")
-    except Exception as e:
-        print(f"COULD NOT REMOVE peer_scan.lock IN START UP SEQUENCE BECAUSE OF EXCEPTION: {e}")
+    except:
+        logging.critical("Could not remove the peer_scan.lock!", exc_info=True)
     try:
-        shutil.rmtree("./permanence_files/ip_messages")
-    except Exception as e:
-        print(f"COULD NOT REMOVE TREE ./permanence_files/ip_messages IN START UP SEQUENCE BECAUSE OF EXCEPTION: {e}")
+        shutil.rmtree("./permanence_files\ip_messages")
+    except:
+        logging.error("Could not remove the directory tree of permanence_files!", exc_info=True)
     neighborhood_scanner_init_thread = threading.Thread(target=neighborhood_scanner.peer_scan, args=())
     neighborhood_scanner_init_thread.name = "init_scanner_thread"
     neighborhood_scanner_init_thread.start()
@@ -49,7 +56,7 @@ while binding == True:
     HOST = get_ip.get_ip()
     PORT = random.randrange(49995, 50000)
     if bind_attempts >= 5:
-        print("HOST MACHINE REFUSED BIND FIVE TIMES, SHUTTING DOWN BOT")
+        logging.critical(f"Could not bind to the bot with the following tried binds: {tried_binds}", exc_info=True)
         sys.exit()
     if PORT not in tried_binds:
         try:
@@ -59,7 +66,7 @@ while binding == True:
                 init_thread.name = "init_thread"
                 init_thread.start()
             except:
-                print(f"FATAL ERROR, COULD NOT START INITIALIZATION THREAD!")
+                logging.critical("Could not start init thread!", exc_info=True)
                 sys.exit()
             binding = False
         except:

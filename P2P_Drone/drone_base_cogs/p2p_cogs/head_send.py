@@ -1,6 +1,7 @@
 import zlib
 import sys
 import re
+import logging
 def heading_wrap(message):
     """[summary]
     Used to wrap a message in a heading, to include things such as a Footer, a Header, the length of the original message, and the CRC32 hash of the original message.
@@ -39,6 +40,7 @@ def heading_wrap(message):
         else:
             return headed_message
     else:
+        logging.warning("There is no message available", exc_info=True)
         return "null"
 
 def head_send(conn, message):
@@ -60,21 +62,26 @@ def head_send(conn, message):
                         try:
                             conn.sendall(bytes(headed_message, "utf-8"))
                         except Exception as e:
-                            print(f"FATAL OUTGOING CONNECTION ERROR: {e}")
+                            logging.error(f"Could not send message {headed_message} to conn {conn}", exc_info=True)
                             try:
                                 conn.shutdown(2)
                             except:
-                                pass
+                                logging.error(f"Could not shutdown conn {conn}", exc_info=True)
                             sys.exit()
                 else:
                     try:
                         conn.sendall(bytes(headed_message, "utf-8"))
                     except Exception as e:
-                        print(f"FATAL OUTGOING CONNECTION ERROR: {e}")
+                        logging.error(f"Could not send message {headed_message} to conn {conn}", exc_info=True)
                         try:
                             conn.shutdown(2)
                         except:
-                            pass
+                            logging.error(f"Could not shutdown conn {conn}", exc_info=True)
                         sys.exit()
             elif not headed_message:
+                logging.warning("There is no headed_message available", exc_info=True)
                 return "NO_MESSAGE"
+        else:
+            logging.warning("There is no message available", exc_info=True)
+    else:
+        logging.critical("There is no connection available", exc_info=True)
